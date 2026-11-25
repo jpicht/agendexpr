@@ -31,6 +31,7 @@
 - **6-field expression** — seconds, minutes, hours, day-of-month, month, day-of-week
 - **Bitmask storage** — O(1) match checks on every field
 - **`Next()` scheduling** — find the next matching timestamp from any `time.Time`
+- **`Previous()` lookback** — find the latest matching timestamp before any `time.Time`
 - **`Due()` checking** — test if a timestamp matches the expression (second to month)
 - **`Countdown()`** — seconds until the next match
 - **Name normalization** — `JAN`–`DEC`, `SUN`–`SAT` in any case

@@ -86,6 +86,85 @@ func (expr Expression) Next(from time.Time) time.Time {
 	return time.Time{}
 }
 
+// Previous returns the latest [time.Time] before from that matches the
+// expression, at whole-second precision. The search is bounded to 4 years
+// before from; if no match is found within that window, a zero [time.Time]
+// is returned. The returned time preserves the location of from.
+func (expr Expression) Previous(from time.Time) time.Time {
+	t := from.Add(-time.Nanosecond).Truncate(time.Second)
+
+	limit := t.AddDate(-4, 0, 0)
+
+	// Within a day, step back by elapsed seconds instead of using time.Date:
+	// for wall times skipped or repeated by a DST transition, time.Date may
+	// pick an instant after t, which would stall the search or overshoot.
+	for t.After(limit) {
+		yr, mon, dom := t.Date()
+		hr, min, sec := t.Clock()
+
+		if !expr.months.Match(uint8(mon)) {
+			prev := expr.months.Previous(uint8(mon))
+			if prev > uint8(mon) {
+				yr--
+			}
+			t = endOfDayBefore(t, yr, time.Month(prev)+1, 1)
+			continue
+		}
+
+		if !expr.dayOfMonth.Match(uint8(dom)) || !expr.dayOfWeek.Match(uint8(t.Weekday())) {
+			t = endOfDayBefore(t, yr, mon, dom)
+			continue
+		}
+
+		if !expr.hours.Match(uint8(hr)) {
+			t = endOfPreviousHour(t)
+			continue
+		}
+
+		if !expr.minutes.Match(uint8(min)) {
+			prev := int(expr.minutes.Previous(uint8(min)))
+			if prev >= min {
+				t = endOfPreviousHour(t)
+			} else {
+				t = t.Add(-time.Duration((min-prev-1)*60+sec+1) * time.Second)
+			}
+			continue
+		}
+
+		if !expr.seconds.Match(uint8(sec)) {
+			prev := int(expr.seconds.Previous(uint8(sec)))
+			if prev >= sec {
+				t = t.Add(-time.Duration(sec+1) * time.Second)
+			} else {
+				t = t.Add(-time.Duration(sec-prev) * time.Second)
+			}
+			continue
+		}
+
+		return t
+	}
+
+	return time.Time{}
+}
+
+func endOfPreviousHour(t time.Time) time.Time {
+	_, min, sec := t.Clock()
+	return t.Add(-time.Duration(min*60+sec+1) * time.Second)
+}
+
+// endOfDayBefore returns the last second before the given date starts. When a
+// DST transition skips or repeats midnight, time.Date can resolve midnight into
+// the previous day or to an instant after t; it then falls back to
+// endOfPreviousHour(t), which always moves back without skipping matches.
+func endOfDayBefore(t time.Time, year int, month time.Month, day int) time.Time {
+	start := time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+	end := start.Add(-time.Second)
+	if start.Day() != day || !end.Before(t) {
+		return endOfPreviousHour(t)
+	}
+	return end
+}
+
 // DueMonth reports whether of's month matches the expression.
 func (expr Expression) DueMonth(of time.Time) bool {
 	return expr.months.Match(uint8(of.Month()))

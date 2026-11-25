@@ -105,3 +105,49 @@ func TestMask_Next(t *testing.T) {
 		})
 	}
 }
+
+func TestMask_Previous(t *testing.T) {
+	tests := []struct {
+		name   string
+		token  Mask[uint64]
+		from   uint8
+		expect uint8
+	}{
+		{
+			name:   "previous value",
+			token:  Mask[uint64]{raw: (1 << 5) | (1 << 10)},
+			from:   10,
+			expect: 5,
+		},
+		{
+			name:   "previous-of value",
+			token:  Mask[uint64]{raw: (1 << 2) | (1 << 50)},
+			from:   40,
+			expect: 2,
+		},
+		{
+			name:   "wrap",
+			token:  Mask[uint64]{raw: (1 << 5) | (1 << 10)},
+			from:   3,
+			expect: 10,
+		},
+		{
+			name:   "from above mask width",
+			token:  Mask[uint64]{raw: (1 << 5) | (1 << 63)},
+			from:   200,
+			expect: 63,
+		},
+		{
+			name:   "empty",
+			token:  Mask[uint64]{raw: 0},
+			from:   10,
+			expect: 0,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expect, test.token.Previous(test.from))
+		})
+	}
+}

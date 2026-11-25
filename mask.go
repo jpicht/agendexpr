@@ -34,6 +34,19 @@ func (m Mask[T]) Next(from uint8) uint8 {
 	return uint8(bits.TrailingZeros64(uint64(m.raw)))
 }
 
+// Previous returns the largest value less than from that is set in the mask.
+// If no such value exists, it wraps around and returns the largest set bit
+// in the entire mask. Returns 0 if the mask is empty.
+func (m Mask[T]) Previous(from uint8) uint8 {
+	if below := uint64(m.raw) & (1<<from - 1); below != 0 {
+		return uint8(bits.Len64(below) - 1)
+	}
+	if m.raw == 0 {
+		return 0
+	}
+	return uint8(bits.Len64(uint64(m.raw)) - 1)
+}
+
 // Match reports whether val is set in the mask.
 func (m Mask[T]) Match(val uint8) bool {
 	return (m.raw & (T(1) << val)) != 0

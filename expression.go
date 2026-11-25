@@ -18,6 +18,13 @@ type Expression struct {
 	dayOfWeek  Mask[uint8]
 }
 
+func (expr Expression) GetSeconds() Mask[uint64]    { return expr.seconds }
+func (expr Expression) GetMinutes() Mask[uint64]    { return expr.minutes }
+func (expr Expression) GetHours() Mask[uint32]      { return expr.hours }
+func (expr Expression) GetDayOfMonth() Mask[uint32] { return expr.dayOfMonth }
+func (expr Expression) GetMonths() Mask[uint16]     { return expr.months }
+func (expr Expression) GetDayOfWeek() Mask[uint8]   { return expr.dayOfWeek }
+
 // Next returns the next [time.Time] after from that matches the expression.
 // The search is bounded to 4 years from from; if no match is found within
 // that window, a zero [time.Time] is returned. The returned time preserves
